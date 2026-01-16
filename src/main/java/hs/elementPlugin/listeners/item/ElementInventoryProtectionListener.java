@@ -1,9 +1,9 @@
-package hs.elementPlugin.listeners.items.listeners;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.elements.ElementType;
 import hs.elementPlugin.managers.ElementManager;
-import hs.elementPlugin.util.ItemUtil;
+import hs.elementPlugin.util.bukkit.ItemUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,10 +30,8 @@ public class ElementInventoryProtectionListener implements Listener {
         ItemStack current = event.getCurrentItem();
         Inventory top = event.getView().getTopInventory();
 
-        // Only check for Ender Chest
         if (top == null || top.getType() != InventoryType.ENDER_CHEST) return;
 
-        // Check for Life/Death cores in Ender Chest
         if ((cursor != null && isLifeOrDeathCore(cursor)) || (current != null && isLifeOrDeathCore(current))) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "You cannot store Life or Death cores in an Ender Chest!");
@@ -46,10 +44,8 @@ public class ElementInventoryProtectionListener implements Listener {
         ItemStack item = event.getOldCursor();
         Inventory top = event.getView().getTopInventory();
 
-        // Only check for Ender Chest
         if (top == null || top.getType() != InventoryType.ENDER_CHEST) return;
 
-        // Check for Life/Death cores in Ender Chest
         if (item != null && isLifeOrDeathCore(item)) {
             event.setCancelled(true);
             player.sendMessage(ChatColor.RED + "You cannot store Life or Death cores in an Ender Chest!");
@@ -62,3 +58,4 @@ public class ElementInventoryProtectionListener implements Listener {
         return type == ElementType.LIFE || type == ElementType.DEATH;
     }
 }
+

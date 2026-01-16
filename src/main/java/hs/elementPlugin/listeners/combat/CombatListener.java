@@ -1,11 +1,11 @@
-package hs.elementPlugin.listeners.player;
+package hs.elementPlugin.listeners.combat;
 
 import hs.elementPlugin.managers.ElementManager;
 import hs.elementPlugin.managers.TrustManager;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.entity.Player;
 
 public class CombatListener implements Listener {
     private final TrustManager trust;
@@ -31,3 +31,4 @@ public class CombatListener implements Listener {
         }
     }
 }
+

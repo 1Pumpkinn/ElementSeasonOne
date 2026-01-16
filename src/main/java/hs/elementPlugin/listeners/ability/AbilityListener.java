@@ -1,8 +1,8 @@
-package hs.elementPlugin.listeners;
+package hs.elementPlugin.listeners.ability;
 
+import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.managers.ElementManager;
 import hs.elementPlugin.data.PlayerData;
-import hs.elementPlugin.elements.ElementType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -19,11 +19,11 @@ public class AbilityListener implements Listener {
     private static final long CHECK_DELAY_TICKS = 6;
     private static final long CLEANUP_DELAY_TICKS = 2;
 
-    private final hs.elementPlugin.ElementPlugin plugin;
+    private final ElementPlugin plugin;
     private final ElementManager elements;
     private final Map<UUID, TapTracker> tapTrackers = new ConcurrentHashMap<>();
 
-    public AbilityListener(hs.elementPlugin.ElementPlugin plugin, ElementManager elements) {
+    public AbilityListener(ElementPlugin plugin, ElementManager elements) {
         this.plugin = plugin;
         this.elements = elements;
     }
@@ -32,7 +32,6 @@ public class AbilityListener implements Listener {
     public void onSwapHands(PlayerSwapHandItemsEvent event) {
         Player player = event.getPlayer();
 
-        // Verify player has an element
         if (!hasElement(player)) return;
 
         UUID playerId = player.getUniqueId();
@@ -40,14 +39,12 @@ public class AbilityListener implements Listener {
 
         long currentTime = System.currentTimeMillis();
 
-        // Check for double-tap
         if (tracker.isDoubleTap(currentTime)) {
             tracker.reset();
             scheduleCleanup(playerId);
-            return; // Allow normal swap
+            return;
         }
 
-        // First tap - cancel and schedule ability check
         event.setCancelled(true);
         tracker.recordTap(currentTime, player.isSneaking());
 
@@ -70,10 +67,9 @@ public class AbilityListener implements Listener {
 
                 TapTracker tracker = tapTrackers.get(playerId);
                 if (tracker == null || !tracker.isValidTap(tapTime)) {
-                    return; // Second tap occurred, cancelled
+                    return;
                 }
 
-                // Execute ability
                 boolean success = tracker.wasShiftHeld ?
                         elements.useAbility2(player) :
                         elements.useAbility1(player);
@@ -94,9 +90,6 @@ public class AbilityListener implements Listener {
         }.runTaskLater(plugin, CLEANUP_DELAY_TICKS);
     }
 
-    /**
-     * Tracks tap timing and state for double-tap detection
-     */
     private static class TapTracker {
         private long lastTapTime = 0;
         private boolean wasShiftHeld = false;
@@ -120,3 +113,4 @@ public class AbilityListener implements Listener {
         }
     }
 }
+

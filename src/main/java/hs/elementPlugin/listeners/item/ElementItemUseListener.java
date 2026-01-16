@@ -1,9 +1,9 @@
-package hs.elementPlugin.listeners.items.listeners;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.managers.ElementManager;
 import hs.elementPlugin.managers.ItemManager;
-import hs.elementPlugin.util.ItemUtil;
+import hs.elementPlugin.util.bukkit.ItemUtil;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -34,5 +34,4 @@ public class ElementItemUseListener implements Listener {
 		}
 	}
 }
-
 

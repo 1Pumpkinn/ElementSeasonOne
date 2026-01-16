@@ -1,10 +1,10 @@
-package hs.elementPlugin.listeners.items;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.ElementType;
 import hs.elementPlugin.items.ItemKeys;
-import org.bukkit.*;
+import org.bukkit.ChatColor;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -30,7 +30,6 @@ public class AdvancedRerollerListener implements Listener {
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
 
-        // Validate item
         if (item == null || !item.hasItemMeta()) return;
         var meta = item.getItemMeta();
         var container = meta.getPersistentDataContainer();
@@ -39,7 +38,6 @@ public class AdvancedRerollerListener implements Listener {
 
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) return;
-
 
         event.setCancelled(true);
 
@@ -53,7 +51,6 @@ public class AdvancedRerollerListener implements Listener {
         ElementType current = pd.getCurrentElement();
         ElementType newElement = determineNewElement(current);
 
-        // Consume one reroller
         item.setAmount(item.getAmount() - 1);
         if (item.getAmount() <= 0) player.getInventory().removeItem(item);
 
@@ -70,7 +67,7 @@ public class AdvancedRerollerListener implements Listener {
 
     private void performAdvancedRoll(Player player, ElementType targetElement) {
         plugin.getElementManager().data(player.getUniqueId());
-        player.playSound(player.getLocation(), Sound.UI_TOAST_IN, 1f, 1.2f);
+        player.playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_IN, 1f, 1.2f);
 
         String[] names = {"METAL", "FROST"};
         int steps = 20;
@@ -101,7 +98,6 @@ public class AdvancedRerollerListener implements Listener {
     private void assignAdvancedElement(Player player, ElementType element) {
         PlayerData pd = plugin.getElementManager().data(player.getUniqueId());
 
-        // FIXED: Only clear the old element's specific effects
         clearOldElementEffects(player, pd);
 
         int currentUpgradeLevel = pd.getCurrentElementUpgradeLevel();
@@ -123,26 +119,21 @@ public class AdvancedRerollerListener implements Listener {
 
         player.showTitle(title);
         plugin.getElementManager().applyUpsides(player);
-        player.getWorld().playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
 
         player.sendMessage(ChatColor.GREEN + "Your element has been rerolled");
     }
 
-    /**
-     * FIXED: Only clear element-specific passive effects, not ALL effects
-     */
     private void clearOldElementEffects(Player player, PlayerData pd) {
         ElementType oldElement = pd.getCurrentElement();
 
         if (oldElement == null) return;
 
-        // Use the Element's clearEffects method which only removes element-specific effects
         var element = plugin.getElementManager().get(oldElement);
         if (element != null) {
             element.clearEffects(player);
         }
 
-        // Special handling for Life element - reset max health
         if (oldElement == ElementType.LIFE) {
             var attr = player.getAttribute(Attribute.MAX_HEALTH);
             if (attr != null) {
@@ -154,3 +145,4 @@ public class AdvancedRerollerListener implements Listener {
         }
     }
 }
+

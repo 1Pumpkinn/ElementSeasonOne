@@ -1,9 +1,8 @@
-package hs.elementPlugin.util;
+package hs.elementPlugin.util.bukkit;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.elements.ElementType;
 import hs.elementPlugin.items.ItemKeys;
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
@@ -19,9 +18,14 @@ public final class ItemUtil {
 
     public static ElementType getElementType(ElementPlugin plugin, ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return null;
-        String t = stack.getItemMeta().getPersistentDataContainer()
+        String typeStr = stack.getItemMeta().getPersistentDataContainer()
                 .get(ItemKeys.elementType(plugin), PersistentDataType.STRING);
-        if (t == null) return null;
-        try { return ElementType.valueOf(t); } catch (IllegalArgumentException ex) { return null; }
+        if (typeStr == null) return null;
+        try {
+            return ElementType.valueOf(typeStr);
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 }
+

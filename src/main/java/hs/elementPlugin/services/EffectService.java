@@ -1,7 +1,7 @@
 package hs.elementPlugin.services;
 
 import hs.elementPlugin.ElementPlugin;
-import hs.elementPlugin.core.Constants;
+import hs.elementPlugin.config.Constants;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.Element;
 import hs.elementPlugin.elements.ElementType;
@@ -159,7 +159,7 @@ public class EffectService implements Listener {
         if (attr == null) return;
 
         double targetHealth = currentElement == ElementType.LIFE ?
-                Constants.LIFE_MAX_HEALTH : Constants.NORMAL_MAX_HEALTH;
+                Constants.Health.LIFE_MAX : Constants.Health.NORMAL_MAX;
 
         if (attr.getBaseValue() != targetHealth) {
             attr.setBaseValue(targetHealth);
@@ -180,7 +180,7 @@ public class EffectService implements Listener {
                     validateEffects(player);
                 }
             }
-        }.runTaskTimer(plugin, Constants.TWO_SECONDS, Constants.TWO_SECONDS);
+        }.runTaskTimer(plugin, Constants.Timing.TWO_SECONDS, Constants.Timing.TWO_SECONDS);
     }
 
     // Event handlers

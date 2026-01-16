@@ -1,7 +1,7 @@
 package hs.elementPlugin.managers;
 
 import hs.elementPlugin.ElementPlugin;
-import hs.elementPlugin.core.Constants;
+import hs.elementPlugin.config.Constants;
 import hs.elementPlugin.data.DataStore;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.*;
@@ -14,7 +14,7 @@ import hs.elementPlugin.elements.impl.life.LifeElement;
 import hs.elementPlugin.elements.impl.metal.MetalElement;
 import hs.elementPlugin.elements.impl.water.WaterElement;
 import hs.elementPlugin.services.EffectService;
-import hs.elementPlugin.util.TaskScheduler;
+import hs.elementPlugin.util.scheduling.TaskScheduler;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -263,7 +263,7 @@ public class ElementManager {
                         return;
                     }
 
-                    if (tick >= Constants.ROLL_STEPS) {
+                    if (tick >= Constants.Animation.ROLL_STEPS) {
                         if (onComplete != null) onComplete.run();
                         cancel();
                         return;
@@ -273,7 +273,7 @@ public class ElementManager {
                     player.sendTitle(ChatColor.GOLD + "Rolling...", ChatColor.AQUA + name, 0, 10, 0);
                     tick++;
                 }
-            }.runTaskTimer(plugin, 0L, Constants.ROLL_DELAY_TICKS);
+            }.runTaskTimer(plugin, 0L, Constants.Animation.ROLL_DELAY_TICKS);
         }
     }
 }

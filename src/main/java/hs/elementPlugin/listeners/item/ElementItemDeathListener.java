@@ -1,4 +1,4 @@
-package hs.elementPlugin.listeners.items;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.data.PlayerData;
@@ -23,23 +23,17 @@ public record ElementItemDeathListener(ElementPlugin plugin, ElementManager elem
             int currentLevel = pd.getUpgradeLevel(currentElement);
 
             if (currentLevel > 0) {
-                // Drop upgraders based on level
                 for (int i = 0; i < currentLevel; i++) {
                     if (i == 0) {
-                        // Drop Upgrader 1
                         e.getDrops().add(plugin.getItemManager().createUpgrader1());
                     } else {
-                        // Drop Upgrader 2
                         e.getDrops().add(plugin.getItemManager().createUpgrader2());
                     }
                 }
 
-                // Reset upgrade level to 0
                 pd.setUpgradeLevel(currentElement, 0);
                 plugin.getDataStore().save(pd);
 
-                // Reapply upsides to remove any upgrade benefits
-                // Schedule this for next tick to avoid issues during death event
                 new BukkitRunnable() {
                     @Override
                     public void run() {
@@ -51,11 +45,9 @@ public record ElementItemDeathListener(ElementPlugin plugin, ElementManager elem
             }
         }
 
-        // For life/death elements: reroll player to new element and drop the core
         if (shouldDropCore(currentElement)) {
             plugin.getLogger().info("Player " + e.getEntity().getName() + " died with " + currentElement + " element - dropping core");
 
-            // Create and drop the core item
             ItemStack coreItem = hs.elementPlugin.items.ElementCoreItem.createCore(plugin, currentElement);
             if (coreItem != null) {
                 e.getDrops().add(coreItem);
@@ -64,28 +56,25 @@ public record ElementItemDeathListener(ElementPlugin plugin, ElementManager elem
                 plugin.getLogger().warning("Failed to create " + currentElement + " core item");
             }
 
-            // Remove the element item flag so they don't have it anymore
             pd.removeElementItem(currentElement);
             plugin.getDataStore().save(pd);
 
-            // CRITICAL FIX: Schedule element reroll for after respawn to avoid death loop
             new BukkitRunnable() {
                 @Override
                 public void run() {
                     if (e.getEntity().isOnline()) {
-                        // Use the public method that assigns a different element
                         elements.assignRandomDifferentElement(e.getEntity());
                         e.getEntity().sendMessage(ChatColor.YELLOW + "Your core dropped and you rolled a new element!");
                     }
                 }
-            }.runTaskLater(plugin, 40L); // Wait 2 seconds after death (respawn time)
+            }.runTaskLater(plugin, 40L);
         } else {
             plugin.getLogger().info("Player " + e.getEntity().getName() + " died with " + currentElement + " element - no core drop");
         }
     }
 
-    // Utility: easily add more elements that drop cores in the future
     private boolean shouldDropCore(ElementType t) {
         return t == ElementType.LIFE || t == ElementType.DEATH;
     }
 }
+

@@ -4,7 +4,7 @@ import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.ElementType;
 import hs.elementPlugin.managers.ElementManager;
-import hs.elementPlugin.util.ItemUtil;
+import hs.elementPlugin.util.bukkit.ItemUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;

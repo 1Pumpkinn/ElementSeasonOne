@@ -1,13 +1,13 @@
 package hs.elementPlugin.listeners.player;
 
 import hs.elementPlugin.ElementPlugin;
-import hs.elementPlugin.core.Constants;
+import hs.elementPlugin.config.Constants;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.gui.ElementSelectionGUI;
 import hs.elementPlugin.managers.ElementManager;
 import hs.elementPlugin.managers.ManaManager;
 import hs.elementPlugin.services.EffectService;
-import hs.elementPlugin.util.TaskScheduler;
+import hs.elementPlugin.util.scheduling.TaskScheduler;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -17,10 +17,6 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
-/**
- * Consolidated listener for player lifecycle events.
- * Handles join, quit, respawn, and totem usage.
- */
 public class PlayerLifecycleListener implements Listener {
     private final ElementPlugin plugin;
     private final ElementManager elementManager;
@@ -41,19 +37,15 @@ public class PlayerLifecycleListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         PlayerData pd = elementManager.data(player.getUniqueId());
-
-        // Ensure mana is loaded
         manaManager.get(player.getUniqueId());
 
         if (pd.getCurrentElement() == null) {
-            // New player - show element selection
             scheduler.runAfterPlayerLoad(() -> {
                 if (player.isOnline()) {
                     new ElementSelectionGUI(plugin, player, false).open();
                 }
             });
         } else {
-            // Existing player - validate and restore effects
             scheduler.runAfterPlayerLoad(() -> {
                 if (player.isOnline()) {
                     effectService.clearAllElementEffects(player);
@@ -66,17 +58,9 @@ public class PlayerLifecycleListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
-        // Cancel any ongoing rolling
         elementManager.cancelRolling(player);
-
-        // Save mana
         manaManager.save(player.getUniqueId());
-
-        // Clear effects before logout
         effectService.clearAllElementEffects(player);
-
-        // Save player data
         plugin.getDataStore().save(elementManager.data(player.getUniqueId()));
     }
 
@@ -98,6 +82,6 @@ public class PlayerLifecycleListener implements Listener {
             if (player.isOnline()) {
                 effectService.applyPassiveEffects(player);
             }
-        }, Constants.HALF_SECOND);
+        }, Constants.Timing.HALF_SECOND);
     }
 }

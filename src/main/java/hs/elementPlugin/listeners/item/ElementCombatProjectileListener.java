@@ -1,4 +1,4 @@
-package hs.elementPlugin.listeners.items.listeners;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.managers.ItemManager;
 import org.bukkit.event.EventHandler;
@@ -23,5 +23,4 @@ public class ElementCombatProjectileListener implements Listener {
 		itemManager.handleLaunch(event);
 	}
 }
-
 

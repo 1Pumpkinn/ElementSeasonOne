@@ -1,8 +1,7 @@
-package hs.elementPlugin.listeners.items.listeners;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
-import hs.elementPlugin.util.ItemUtil;
-import org.bukkit.ChatColor;
+import hs.elementPlugin.util.bukkit.ItemUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -12,7 +11,7 @@ import org.bukkit.inventory.ItemStack;
 public class ElementItemDropListener implements Listener {
 	private final ElementPlugin plugin;
 
-public ElementItemDropListener(ElementPlugin plugin) {
+	public ElementItemDropListener(ElementPlugin plugin) {
 		this.plugin = plugin;
 	}
 
@@ -30,5 +29,4 @@ public ElementItemDropListener(ElementPlugin plugin) {
 		}
 	}
 }
-
 

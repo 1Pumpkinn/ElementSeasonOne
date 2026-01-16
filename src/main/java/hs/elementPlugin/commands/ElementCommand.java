@@ -103,7 +103,6 @@ public class ElementCommand implements CommandExecutor, TabCompleter {
                 .collect(Collectors.toList());
     }
 
-    // Inner classes for sub-commands
     private interface SubCommand {
         boolean execute(CommandSender sender, String[] args);
     }

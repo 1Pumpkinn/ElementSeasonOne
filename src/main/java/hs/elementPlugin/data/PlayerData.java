@@ -1,89 +1,139 @@
 package hs.elementPlugin.data;
 
 import hs.elementPlugin.elements.ElementType;
+import org.bukkit.configuration.ConfigurationSection;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
-public class PlayerData {
+/**
+ * Immutable player data holder using modern Java patterns
+ */
+public final class PlayerData {
     private final UUID uuid;
     private ElementType currentElement;
-    private final java.util.EnumSet<ElementType> ownedItems = java.util.EnumSet.noneOf(ElementType.class);
-    private int mana = 100;
-    private int currentElementUpgradeLevel = 0; // Only save current element's upgrade level
-    private final Set<UUID> trustedPlayers = new HashSet<>();
+    private final EnumSet<ElementType> ownedItems;
+    private int mana;
+    private int currentElementUpgradeLevel;
+    private final Set<UUID> trustedPlayers;
+
+    // === CONSTRUCTORS ===
 
     public PlayerData(UUID uuid) {
-        this.uuid = uuid;
+        this.uuid = Objects.requireNonNull(uuid, "UUID cannot be null");
+        this.ownedItems = EnumSet.noneOf(ElementType.class);
+        this.mana = 100;
+        this.currentElementUpgradeLevel = 0;
+        this.trustedPlayers = new HashSet<>();
     }
 
-    public PlayerData(UUID uuid, org.bukkit.configuration.ConfigurationSection section) {
-        this.uuid = uuid;
+    public PlayerData(UUID uuid, ConfigurationSection section) {
+        this(uuid);
         if (section != null) {
-            String elem = section.getString("element");
-            if (elem != null) {
-                try {
-                    this.currentElement = ElementType.valueOf(elem);
-                } catch (IllegalArgumentException e) {
-                    // Invalid element, leave as null
-                }
-            }
-            this.mana = section.getInt("mana", 100);
-            this.currentElementUpgradeLevel = section.getInt("currentUpgradeLevel", 0);
-            java.util.List<String> items = section.getStringList("items");
-            if (items != null) {
-                for (String name : items) {
-                    try {
-                        ElementType t = ElementType.valueOf(name);
-                        this.ownedItems.add(t);
-                    } catch (IllegalArgumentException e) {
-                        // skip invalid
-                    }
-                }
-            }
+            loadFromSection(section);
+        }
+    }
 
-            // Load trust list
-            org.bukkit.configuration.ConfigurationSection trustSection = section.getConfigurationSection("trust");
-            if (trustSection != null) {
-                for (String key : trustSection.getKeys(false)) {
-                    try {
-                        this.trustedPlayers.add(UUID.fromString(key));
-                    } catch (IllegalArgumentException e) {
-                        // Invalid UUID, skip
-                    }
+    private void loadFromSection(ConfigurationSection section) {
+        // Load element
+        String elem = section.getString("element");
+        if (elem != null) {
+            try {
+                this.currentElement = ElementType.valueOf(elem);
+            } catch (IllegalArgumentException ignored) {
+                // Invalid element, leave as null
+            }
+        }
+
+        // Load mana
+        this.mana = section.getInt("mana", 100);
+
+        // Load upgrade level
+        this.currentElementUpgradeLevel = section.getInt("currentUpgradeLevel", 0);
+
+        // Load owned items
+        List<String> items = section.getStringList("items");
+        if (items != null) {
+            for (String name : items) {
+                try {
+                    ElementType type = ElementType.valueOf(name);
+                    this.ownedItems.add(type);
+                } catch (IllegalArgumentException ignored) {
+                    // Skip invalid items
+                }
+            }
+        }
+
+        // Load trust list
+        ConfigurationSection trustSection = section.getConfigurationSection("trust");
+        if (trustSection != null) {
+            for (String key : trustSection.getKeys(false)) {
+                try {
+                    this.trustedPlayers.add(UUID.fromString(key));
+                } catch (IllegalArgumentException ignored) {
+                    // Invalid UUID, skip
                 }
             }
         }
     }
 
-    public UUID getUuid() { return uuid; }
+    // === GETTERS ===
 
-    public int getCurrentElementUpgradeLevel() { return currentElementUpgradeLevel; }
+    public UUID getUuid() {
+        return uuid;
+    }
+
+    public ElementType getCurrentElement() {
+        return currentElement;
+    }
+
+    public ElementType getElementType() {
+        return currentElement;
+    }
+
+    public int getCurrentElementUpgradeLevel() {
+        return currentElementUpgradeLevel;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public Set<ElementType> getOwnedItems() {
+        return EnumSet.copyOf(ownedItems);
+    }
+
+    public Set<UUID> getTrustedPlayers() {
+        return new HashSet<>(trustedPlayers);
+    }
+
+    // === SETTERS (with validation) ===
+
+    public void setCurrentElement(ElementType element) {
+        this.currentElement = element;
+        if (element != null) {
+            this.currentElementUpgradeLevel = 0;
+        }
+    }
+
+    public void setCurrentElementWithoutReset(ElementType element) {
+        this.currentElement = element;
+    }
 
     public void setCurrentElementUpgradeLevel(int level) {
         this.currentElementUpgradeLevel = Math.max(0, Math.min(2, level));
     }
 
-    public ElementType getCurrentElement() { return currentElement; }
-
-    public ElementType getElementType() { return currentElement; }
-
-    public void setCurrentElement(ElementType currentElement) {
-        this.currentElement = currentElement;
-        // Reset upgrade level when switching elements (except when loading from save)
-        if (currentElement != null) {
-            this.currentElementUpgradeLevel = 0;
-        }
+    public void setMana(int mana) {
+        this.mana = Math.max(0, mana);
     }
 
-    public void setCurrentElementWithoutReset(ElementType currentElement) {
-        // Used when loading from save - doesn't reset upgrade level
-        this.currentElement = currentElement;
+    public void addMana(int delta) {
+        setMana(this.mana + delta);
     }
+
+    // === ELEMENT-SPECIFIC METHODS ===
 
     public int getUpgradeLevel(ElementType type) {
-        // Only return upgrade level for current element
         if (type != null && type.equals(currentElement)) {
             return currentElementUpgradeLevel;
         }
@@ -91,37 +141,37 @@ public class PlayerData {
     }
 
     public void setUpgradeLevel(ElementType type, int level) {
-        // Only set upgrade level for current element
         if (type != null && type.equals(currentElement)) {
             setCurrentElementUpgradeLevel(level);
         }
     }
 
-    public java.util.Map<ElementType, Integer> getUpgradesView() {
-        java.util.Map<ElementType, Integer> map = new java.util.EnumMap<>(ElementType.class);
+    public Map<ElementType, Integer> getUpgradesView() {
+        Map<ElementType, Integer> map = new EnumMap<>(ElementType.class);
         if (currentElement != null) {
             map.put(currentElement, currentElementUpgradeLevel);
         }
-        return map;
+        return Collections.unmodifiableMap(map);
     }
 
-    public java.util.Set<ElementType> getOwnedItems() { return ownedItems; }
+    // === OWNED ITEMS ===
 
-    public boolean hasElementItem(ElementType type) { return ownedItems.contains(type); }
+    public boolean hasElementItem(ElementType type) {
+        return ownedItems.contains(type);
+    }
 
-    public void addElementItem(ElementType type) { ownedItems.add(type); }
+    public void addElementItem(ElementType type) {
+        ownedItems.add(type);
+    }
 
-    public void removeElementItem(ElementType type) { ownedItems.remove(type); }
+    public void removeElementItem(ElementType type) {
+        ownedItems.remove(type);
+    }
 
-    public int getMana() { return mana; }
+    // === TRUST MANAGEMENT ===
 
-    public void setMana(int mana) { this.mana = Math.max(0, mana); }
-
-    public void addMana(int delta) { setMana(this.mana + delta); }
-
-    // Trust list methods
-    public Set<UUID> getTrustedPlayers() {
-        return new HashSet<>(trustedPlayers);
+    public boolean isTrusted(UUID uuid) {
+        return trustedPlayers.contains(uuid);
     }
 
     public void addTrustedPlayer(UUID uuid) {
@@ -132,14 +182,35 @@ public class PlayerData {
         trustedPlayers.remove(uuid);
     }
 
-    public boolean isTrusted(UUID uuid) {
-        return trustedPlayers.contains(uuid);
-    }
-
     public void setTrustedPlayers(Set<UUID> trusted) {
         trustedPlayers.clear();
         if (trusted != null) {
             trustedPlayers.addAll(trusted);
         }
+    }
+
+    // === UTILITY ===
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        PlayerData that = (PlayerData) o;
+        return uuid.equals(that.uuid);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(uuid);
+    }
+
+    @Override
+    public String toString() {
+        return "PlayerData{" +
+                "uuid=" + uuid +
+                ", element=" + currentElement +
+                ", mana=" + mana +
+                ", upgradeLevel=" + currentElementUpgradeLevel +
+                '}';
     }
 }

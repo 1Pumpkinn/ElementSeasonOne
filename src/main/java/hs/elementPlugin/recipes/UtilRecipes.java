@@ -1,4 +1,4 @@
-package hs.elementPlugin.recipes.util;
+package hs.elementPlugin.recipes;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.items.AdvancedRerollerItem;
@@ -14,3 +14,4 @@ public class UtilRecipes {
         AdvancedRerollerItem.registerRecipe(plugin);
     }
 }
+

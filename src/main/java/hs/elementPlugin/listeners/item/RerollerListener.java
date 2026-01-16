@@ -1,10 +1,9 @@
-package hs.elementPlugin.listeners.items;
+package hs.elementPlugin.listeners.item;
 
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.ElementType;
 import hs.elementPlugin.items.ItemKeys;
-import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -29,55 +28,44 @@ public class RerollerListener implements Listener {
 
         if (item.hasItemMeta() && item.getItemMeta().getPersistentDataContainer()
                 .has(ItemKeys.reroller(plugin), PersistentDataType.BYTE)) {
-            // Only activate on right-click, not left-click/hit or other actions
             org.bukkit.event.block.Action action = event.getAction();
             if (action != org.bukkit.event.block.Action.RIGHT_CLICK_AIR &&
                     action != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
                 return;
             }
 
-
             event.setCancelled(true);
 
-            // Check if player is already rolling
             if (plugin.getElementManager().isCurrentlyRolling(player)) {
                 player.sendMessage(net.kyori.adventure.text.Component.text("You are already rerolling your element!").color(net.kyori.adventure.text.format.NamedTextColor.RED));
                 return;
             }
 
-            // CRITICAL FIX: Clear old element effects BEFORE rerolling
             PlayerData pd = plugin.getElementManager().data(player.getUniqueId());
             ElementType oldElement = pd.getCurrentElement();
             if (oldElement != null) {
                 clearOldElementEffects(player, oldElement);
             }
 
-            // Remove one reroller item
             if (item.getAmount() > 1) {
                 item.setAmount(item.getAmount() - 1);
             } else {
                 player.getInventory().removeItem(item);
             }
 
-            // Automatically reroll the element instead of opening GUI
             plugin.getElementManager().rollAndAssign(player);
             player.sendMessage(net.kyori.adventure.text.Component.text("Your element has been rerolled!").color(net.kyori.adventure.text.format.NamedTextColor.GREEN));
         }
     }
 
-    /**
-     * Clear old element effects properly
-     */
     private void clearOldElementEffects(Player player, ElementType oldElement) {
         if (oldElement == null) return;
 
-        // Use the Element's clearEffects method
         var element = plugin.getElementManager().get(oldElement);
         if (element != null) {
             element.clearEffects(player);
         }
 
-        // Special handling for Life element - reset max health
         if (oldElement == ElementType.LIFE) {
             var attr = player.getAttribute(Attribute.MAX_HEALTH);
             if (attr != null) {
@@ -89,3 +77,4 @@ public class RerollerListener implements Listener {
         }
     }
 }
+
