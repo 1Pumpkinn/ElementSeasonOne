@@ -7,7 +7,6 @@ import hs.elementPlugin.elements.abilities.impl.metal.MetalDashAbility;
 import hs.elementPlugin.elements.BaseElement;
 import hs.elementPlugin.elements.ElementContext;
 import hs.elementPlugin.elements.ElementType;
-import hs.elementPlugin.elements.upsides.impl.MetalUpsides;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
