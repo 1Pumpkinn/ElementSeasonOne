@@ -113,7 +113,8 @@ public final class ElementPlugin extends JavaPlugin {
                 .command("trust", new TrustCommand(this, trustManager))
                 .command("element", new ElementCommand(this))
                 .command("mana", new ManaCommand(manaManager, configManager))
-                .command("util", new UtilCommand(this));
+                .command("util", new UtilCommand(this))
+                .command("togglerecipe", new ToggleRecipeCommand(this));
 
         getLogger().info("Commands registered");
     }

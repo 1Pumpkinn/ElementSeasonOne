@@ -14,7 +14,7 @@ commands:
 
   element:
     description: Element admin commands
-    usage: /element <set|debug|roll|togglerecipe> [player] [element]
+    usage: /element <set|debug|roll> [player] [element]
     permission: element.admin
 
   mana:
@@ -48,6 +48,11 @@ commands:
     description: View information about all elements
     usage: /elements [element_name]
     aliases: [ elementinfo, elinfo ]
+
+  togglerecipe:
+    description: Toggle recipe availability
+    usage: /togglerecipe <upgrader1|upgrader2|reroller|advancedreroller>
+    permission: element.admin
 
 
 

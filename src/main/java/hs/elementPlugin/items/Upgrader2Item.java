@@ -11,7 +11,7 @@ import org.bukkit.persistence.PersistentDataType;
 
 import java.util.List;
 
-public final class Upgrader2Item {
+public final class  Upgrader2Item {
     private Upgrader2Item() {}
 
     public static final String KEY = "upgrader_2";
