@@ -191,6 +191,7 @@ public final class ElementPlugin extends JavaPlugin {
         pm.registerEvents(new hs.elementPlugin.elements.impl.frost.listeners.FrostFrozenPunchListener(this, elementManager), this);
     }
 
+
     private void registerRecipes() {
         taskScheduler.runLaterSeconds(() -> {
             getLogger().info("Registering recipes...");
@@ -226,4 +227,5 @@ public final class ElementPlugin extends JavaPlugin {
     public ValidationService getValidationService() { return validationService; }
     public TaskScheduler getTaskScheduler() { return taskScheduler; }
     public MetadataHelper getMetadataHelper() { return metadataHelper; }
+
 }
