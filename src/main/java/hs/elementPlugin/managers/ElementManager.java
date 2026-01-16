@@ -1,38 +1,38 @@
 package hs.elementPlugin.managers;
 
 import hs.elementPlugin.ElementPlugin;
+import hs.elementPlugin.core.Constants;
 import hs.elementPlugin.data.DataStore;
 import hs.elementPlugin.data.PlayerData;
 import hs.elementPlugin.elements.*;
 import hs.elementPlugin.elements.impl.air.AirElement;
-import hs.elementPlugin.elements.impl.water.WaterElement;
-import hs.elementPlugin.elements.impl.fire.FireElement;
-import hs.elementPlugin.elements.impl.earth.EarthElement;
-import hs.elementPlugin.elements.impl.life.LifeElement;
 import hs.elementPlugin.elements.impl.death.DeathElement;
+import hs.elementPlugin.elements.impl.earth.EarthElement;
+import hs.elementPlugin.elements.impl.fire.FireElement;
+import hs.elementPlugin.elements.impl.frost.FrostElement;
+import hs.elementPlugin.elements.impl.life.LifeElement;
+import hs.elementPlugin.elements.impl.metal.MetalElement;
+import hs.elementPlugin.elements.impl.water.WaterElement;
+import hs.elementPlugin.services.EffectService;
+import hs.elementPlugin.util.TaskScheduler;
 import org.bukkit.*;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
-import java.util.function.Supplier;
 
 public class ElementManager {
-
     private static final ElementType[] BASIC_ELEMENTS = {
             ElementType.AIR, ElementType.WATER, ElementType.FIRE, ElementType.EARTH
     };
-
-    private static final int ROLL_STEPS = 16;
-    private static final long ROLL_DELAY_TICKS = 3L;
 
     private final ElementPlugin plugin;
     private final DataStore store;
     private final ManaManager manaManager;
     private final TrustManager trustManager;
     private final ConfigManager configManager;
+    private final EffectService effectService;
+    private final TaskScheduler scheduler;
     private final Map<ElementType, Element> registry = new EnumMap<>(ElementType.class);
     private final Set<UUID> currentlyRolling = new HashSet<>();
     private final Random random = new Random();
@@ -44,27 +44,26 @@ public class ElementManager {
         this.manaManager = manaManager;
         this.trustManager = trustManager;
         this.configManager = configManager;
+        this.effectService = new EffectService(plugin, this);
+        this.scheduler = new TaskScheduler(plugin);
         registerAllElements();
     }
 
     public ElementPlugin getPlugin() { return plugin; }
+    public EffectService getEffectService() { return effectService; }
 
     private void registerAllElements() {
-        registerElement(ElementType.AIR, () -> new AirElement(plugin));
-        registerElement(ElementType.WATER, () -> new WaterElement(plugin));
-        registerElement(ElementType.FIRE, () -> new FireElement(plugin));
-        registerElement(ElementType.EARTH, () -> new EarthElement(plugin));
-        registerElement(ElementType.LIFE, () -> new LifeElement(plugin));
-        registerElement(ElementType.DEATH, () -> new DeathElement(plugin));
-        registerElement(ElementType.METAL, () -> new hs.elementPlugin.elements.impl.metal.MetalElement(plugin));
-        registerElement(ElementType.FROST, () -> new hs.elementPlugin.elements.impl.frost.FrostElement(plugin));
+        registry.put(ElementType.AIR, new AirElement(plugin));
+        registry.put(ElementType.WATER, new WaterElement(plugin));
+        registry.put(ElementType.FIRE, new FireElement(plugin));
+        registry.put(ElementType.EARTH, new EarthElement(plugin));
+        registry.put(ElementType.LIFE, new LifeElement(plugin));
+        registry.put(ElementType.DEATH, new DeathElement(plugin));
+        registry.put(ElementType.METAL, new MetalElement(plugin));
+        registry.put(ElementType.FROST, new FrostElement(plugin));
     }
 
-    private void registerElement(ElementType type, Supplier<Element> supplier) {
-        registry.put(type, supplier.get());
-    }
-
-    public PlayerData data(@NotNull UUID uuid) {
+    public PlayerData data(UUID uuid) {
         return store.getPlayerData(uuid);
     }
 
@@ -73,15 +72,7 @@ public class ElementManager {
     }
 
     public ElementType getPlayerElement(Player player) {
-        return Optional.ofNullable(data(player.getUniqueId()))
-                .map(PlayerData::getElementType)
-                .orElse(null);
-    }
-
-    public void ensureAssigned(Player player) {
-        if (getPlayerElement(player) == null) {
-            rollAndAssign(player);
-        }
+        return data(player.getUniqueId()).getCurrentElement();
     }
 
     public boolean isCurrentlyRolling(Player player) {
@@ -98,42 +89,19 @@ public class ElementManager {
         player.playSound(player.getLocation(), Sound.UI_TOAST_IN, 1f, 1.2f);
 
         new RollingAnimation(player, BASIC_ELEMENTS)
-                .withSteps(ROLL_STEPS)
-                .withDelay(ROLL_DELAY_TICKS)
-                .onComplete(() -> {
-                    assignRandomWithTitle(player);
+                .start(() -> {
+                    assignRandomElement(player);
                     endRoll(player);
-                })
-                .start();
+                });
     }
 
-    private void assignRandomWithTitle(Player player) {
+    private void assignRandomElement(Player player) {
         ElementType randomType = BASIC_ELEMENTS[random.nextInt(BASIC_ELEMENTS.length)];
-        assignRandomWithTitle(player, randomType);
-    }
-
-    private void assignRandomWithTitle(Player player, ElementType targetElement) {
-        PlayerData pd = data(player.getUniqueId());
-        ElementType oldElement = pd.getCurrentElement();
-
-        if (oldElement != null && oldElement != targetElement) {
-            clearOldElementEffects(player, oldElement);
-            returnLifeOrDeathCore(player, oldElement);
-        }
-
-        int currentUpgradeLevel = pd.getCurrentElementUpgradeLevel();
-        pd.setCurrentElementWithoutReset(targetElement);
-        pd.setCurrentElementUpgradeLevel(currentUpgradeLevel);
-        store.save(pd);
-
-        showElementTitle(player, targetElement, "Element Assigned!");
-        applyUpsides(player);
-        player.getWorld().playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+        assignElementInternal(player, randomType, "Element Assigned!");
     }
 
     public void assignRandomDifferentElement(Player player) {
         ElementType current = getPlayerElement(player);
-
         List<ElementType> available = Arrays.stream(BASIC_ELEMENTS)
                 .filter(type -> type != current)
                 .toList();
@@ -154,8 +122,7 @@ public class ElementManager {
         ElementType old = pd.getCurrentElement();
 
         if (old != null && old != type) {
-            returnLifeOrDeathCore(player, old);
-            clearOldElementEffects(player, old);
+            handleElementSwitch(player, old);
         }
 
         pd.setCurrentElement(type);
@@ -173,12 +140,8 @@ public class ElementManager {
         PlayerData pd = data(player.getUniqueId());
         ElementType old = pd.getCurrentElement();
 
-        if (old != type) {
-            returnLifeOrDeathCore(player, old);
-        }
-
         if (old != null && old != type) {
-            clearOldElementEffects(player, old);
+            handleElementSwitch(player, old);
         }
 
         if (resetLevel) {
@@ -195,35 +158,13 @@ public class ElementManager {
         player.getWorld().playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
     }
 
-    private void clearOldElementEffects(Player player, ElementType oldElement) {
-        if (oldElement == null) return;
-
-        Element element = registry.get(oldElement);
-        if (element != null) {
-            element.clearEffects(player);
-        }
-
-        if (oldElement == ElementType.LIFE) {
-            Optional.ofNullable(player.getAttribute(Attribute.MAX_HEALTH))
-                    .ifPresent(attr -> {
-                        attr.setBaseValue(20.0);
-                        if (!player.isDead() && player.getHealth() > attr.getBaseValue()) {
-                            player.setHealth(attr.getBaseValue());
-                        }
-                    });
-        }
+    private void handleElementSwitch(Player player, ElementType oldElement) {
+        returnLifeOrDeathCore(player, oldElement);
+        effectService.clearAllElementEffects(player);
     }
 
     public void applyUpsides(Player player) {
-        PlayerData pd = data(player.getUniqueId());
-        ElementType type = pd.getCurrentElement();
-
-        if (type == null) return;
-
-        Element element = registry.get(type);
-        if (element != null) {
-            element.applyUpsides(player, pd.getUpgradeLevel(type));
-        }
+        effectService.applyPassiveEffects(player);
     }
 
     public boolean useAbility1(Player player) {
@@ -255,25 +196,22 @@ public class ElementManager {
     }
 
     public void giveElementItem(Player player, ElementType type) {
-        Optional.ofNullable(hs.elementPlugin.items.ElementCoreItem.createCore(plugin, type))
-                .ifPresent(item -> {
-                    player.getInventory().addItem(item);
-                    player.sendMessage(ChatColor.GREEN + "You received a " +
-                            hs.elementPlugin.items.ElementCoreItem.getDisplayName(type) + " item!");
-                });
+        var item = hs.elementPlugin.items.ElementCoreItem.createCore(plugin, type);
+        if (item != null) {
+            player.getInventory().addItem(item);
+        }
     }
 
     private void showElementTitle(Player player, ElementType type, String title) {
         var titleObj = net.kyori.adventure.title.Title.title(
-                net.kyori.adventure.text.Component.text(title)
-                        .color(net.kyori.adventure.text.format.NamedTextColor.GOLD),
-                net.kyori.adventure.text.Component.text(type.name())
-                        .color(net.kyori.adventure.text.format.NamedTextColor.AQUA),
+                net.kyori.adventure.text.Component.text(title).color(net.kyori.adventure.text.format.NamedTextColor.GOLD),
+                net.kyori.adventure.text.Component.text(type.name()).color(net.kyori.adventure.text.format.NamedTextColor.AQUA),
                 net.kyori.adventure.title.Title.Times.times(
                         java.time.Duration.ofMillis(500),
                         java.time.Duration.ofMillis(2000),
                         java.time.Duration.ofMillis(500)
-                ));
+                )
+        );
         player.showTitle(titleObj);
     }
 
@@ -281,18 +219,16 @@ public class ElementManager {
         if (oldElement != ElementType.LIFE && oldElement != ElementType.DEATH) return;
         if (!data(player.getUniqueId()).hasElementItem(oldElement)) return;
 
-        Optional.ofNullable(hs.elementPlugin.items.ElementCoreItem.createCore(plugin, oldElement))
-                .ifPresent(core -> {
-                    player.getInventory().addItem(core);
-                    player.sendMessage(ChatColor.YELLOW + "Your " +
-                            hs.elementPlugin.items.ElementCoreItem.getDisplayName(oldElement) +
-                            ChatColor.YELLOW + " has been returned to you!");
-                });
+        var core = hs.elementPlugin.items.ElementCoreItem.createCore(plugin, oldElement);
+        if (core != null) {
+            player.getInventory().addItem(core);
+            player.sendMessage(ChatColor.YELLOW + "Your core has been returned!");
+        }
     }
 
     private boolean beginRoll(Player player) {
         if (isCurrentlyRolling(player)) {
-            player.sendMessage(ChatColor.RED + "You are already rerolling your element!");
+            player.sendMessage(ChatColor.RED + "You are already rerolling!");
             return false;
         }
         currentlyRolling.add(player.getUniqueId());
@@ -303,34 +239,19 @@ public class ElementManager {
         currentlyRolling.remove(player.getUniqueId());
     }
 
+    /**
+     * Reusable rolling animation
+     */
     private class RollingAnimation {
         private final Player player;
         private final ElementType[] elements;
-        private int steps = 16;
-        private long delayTicks = 3L;
-        private Runnable onComplete;
 
         RollingAnimation(Player player, ElementType[] elements) {
             this.player = player;
             this.elements = elements;
         }
 
-        RollingAnimation withSteps(int steps) {
-            this.steps = steps;
-            return this;
-        }
-
-        RollingAnimation withDelay(long ticks) {
-            this.delayTicks = ticks;
-            return this;
-        }
-
-        RollingAnimation onComplete(Runnable callback) {
-            this.onComplete = callback;
-            return this;
-        }
-
-        void start() {
+        void start(Runnable onComplete) {
             new BukkitRunnable() {
                 int tick = 0;
 
@@ -342,17 +263,17 @@ public class ElementManager {
                         return;
                     }
 
-                    if (tick >= steps) {
+                    if (tick >= Constants.ROLL_STEPS) {
                         if (onComplete != null) onComplete.run();
                         cancel();
                         return;
                     }
 
-                    String randomName = elements[random.nextInt(elements.length)].name();
-                    player.sendTitle(ChatColor.GOLD + "Rolling...", ChatColor.AQUA + randomName, 0, 10, 0);
+                    String name = elements[random.nextInt(elements.length)].name();
+                    player.sendTitle(ChatColor.GOLD + "Rolling...", ChatColor.AQUA + name, 0, 10, 0);
                     tick++;
                 }
-            }.runTaskTimer(plugin, 0L, delayTicks);
+            }.runTaskTimer(plugin, 0L, Constants.ROLL_DELAY_TICKS);
         }
     }
 }
