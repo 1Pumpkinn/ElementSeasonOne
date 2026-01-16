@@ -89,4 +89,18 @@ public class ConfigManager {
             return 25;
         }
     }
+
+    public boolean isAdvancedRerollerRecipeEnabled() {
+        try {
+            return config.getBoolean("recipes.advanced_reroller_enabled", true);
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.WARNING, "Error reading advanced_reroller_enabled from config, using default value true", e);
+            return true;
+        }
+    }
+
+    public void setAdvancedRerollerRecipeEnabled(boolean enabled) {
+        config.set("recipes.advanced_reroller_enabled", enabled);
+        plugin.saveConfig();
+    }
 }

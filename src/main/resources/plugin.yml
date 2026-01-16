@@ -14,7 +14,7 @@ commands:
 
   element:
     description: Element admin commands
-    usage: /element <set|debug> <player> [element]
+    usage: /element <set|debug|roll|togglerecipe> [player] [element]
     permission: element.admin
 
   mana:

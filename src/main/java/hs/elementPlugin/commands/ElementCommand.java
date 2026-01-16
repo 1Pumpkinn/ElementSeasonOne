@@ -3,9 +3,13 @@ package hs.elementPlugin.commands;
 import hs.elementPlugin.ElementPlugin;
 import hs.elementPlugin.data.DataStore;
 import hs.elementPlugin.elements.ElementType;
+import hs.elementPlugin.gui.ElementSelectionGUI;
+import hs.elementPlugin.items.AdvancedRerollerItem;
+import hs.elementPlugin.managers.ConfigManager;
 import hs.elementPlugin.managers.ElementManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -32,6 +36,8 @@ public class ElementCommand implements CommandExecutor, TabCompleter {
         Map<String, SubCommand> commands = new HashMap<>();
         commands.put("set", new SetCommand());
         commands.put("debug", new DebugCommand());
+        commands.put("roll", new RollCommand());
+        commands.put("togglerecipe", new ToggleRecipeCommand());
         return commands;
     }
 
@@ -60,6 +66,8 @@ public class ElementCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(ChatColor.GOLD + "=== Element Admin Commands ===");
         sender.sendMessage(ChatColor.YELLOW + "/element set <player> <element> - Set player's element");
         sender.sendMessage(ChatColor.YELLOW + "/element debug <player> - Debug player's element data");
+        sender.sendMessage(ChatColor.YELLOW + "/element roll - Roll for a new element (OP only)");
+        sender.sendMessage(ChatColor.YELLOW + "/element togglerecipe - Toggle advanced reroller recipe");
     }
 
     @Override
@@ -73,6 +81,9 @@ public class ElementCommand implements CommandExecutor, TabCompleter {
             case 2 -> {
                 String subCmd = args[0].toLowerCase();
                 if (subCommands.containsKey(subCmd)) {
+                    if (subCmd.equals("roll") || subCmd.equals("togglerecipe")) {
+                        yield Collections.emptyList();
+                    }
                     yield getOnlinePlayerNames(args[1]);
                 }
                 yield Collections.emptyList();
@@ -173,6 +184,54 @@ public class ElementCommand implements CommandExecutor, TabCompleter {
             ElementType reloadedElement = elementManager.getPlayerElement(target);
             sender.sendMessage(ChatColor.YELLOW + "After cache invalidation: " +
                     (reloadedElement != null ? reloadedElement.name() : "null"));
+
+            return true;
+        }
+    }
+
+    private class RollCommand implements SubCommand {
+        @Override
+        public boolean execute(CommandSender sender, String[] args) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(ChatColor.RED + "This command can only be used by players.");
+                return true;
+            }
+
+            if (!player.isOp()) {
+                sender.sendMessage(ChatColor.RED + "You must be OP to use this command.");
+                return true;
+            }
+
+            if (elementManager.isCurrentlyRolling(player)) {
+                player.sendMessage(ChatColor.RED + "You are already rolling for an element!");
+                return true;
+            }
+
+            new ElementSelectionGUI(plugin, player, true).open();
+            player.sendMessage(ChatColor.GREEN + "Rolling for a new element...");
+            
+            return true;
+        }
+    }
+
+    private class ToggleRecipeCommand implements SubCommand {
+        @Override
+        public boolean execute(CommandSender sender, String[] args) {
+            ConfigManager configManager = plugin.getConfigManager();
+            boolean currentlyEnabled = configManager.isAdvancedRerollerRecipeEnabled();
+            boolean newState = !currentlyEnabled;
+
+            configManager.setAdvancedRerollerRecipeEnabled(newState);
+
+            NamespacedKey recipeKey = new NamespacedKey(plugin, AdvancedRerollerItem.KEY);
+            
+            if (newState) {
+                AdvancedRerollerItem.registerRecipe(plugin);
+                sender.sendMessage(ChatColor.GREEN + "Advanced Reroller recipe has been " + ChatColor.GOLD + "ENABLED");
+            } else {
+                plugin.getServer().removeRecipe(recipeKey);
+                sender.sendMessage(ChatColor.RED + "Advanced Reroller recipe has been " + ChatColor.GOLD + "DISABLED");
+            }
 
             return true;
         }

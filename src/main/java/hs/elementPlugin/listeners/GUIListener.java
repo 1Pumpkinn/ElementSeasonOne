@@ -28,7 +28,7 @@ public class GUIListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
 
         String title = event.getView().getTitle();
-        if (title.contains("Select Your Element")) {
+        if (title.contains("Rolling Element") || title.contains("Select Your Element")) {
             event.setCancelled(true);
 
             ElementSelectionGUI gui = ElementSelectionGUI.getGUI(player.getUniqueId());
@@ -43,7 +43,7 @@ public class GUIListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) return;
 
         String title = event.getView().getTitle();
-        if (title.contains("Select Your Element")) {
+        if (title.contains("Rolling Element") || title.contains("Select Your Element")) {
             ElementSelectionGUI.removeGUI(player.getUniqueId());
             // Capture close reason to avoid reopening during inventory transitions
             org.bukkit.event.inventory.InventoryCloseEvent.Reason reason = event.getReason();

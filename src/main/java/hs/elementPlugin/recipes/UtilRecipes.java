@@ -11,7 +11,10 @@ public class UtilRecipes {
         Upgrader1Item.registerRecipe(plugin);
         Upgrader2Item.registerRecipe(plugin);
         RerollerItem.registerRecipe(plugin);
-        AdvancedRerollerItem.registerRecipe(plugin);
+        
+        if (plugin.getConfigManager().isAdvancedRerollerRecipeEnabled()) {
+            AdvancedRerollerItem.registerRecipe(plugin);
+        }
     }
 }
 

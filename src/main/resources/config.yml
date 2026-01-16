@@ -5,6 +5,10 @@ mana:
   max: 100
   regen_per_second: 1
 
+# Recipe settings
+recipes:
+  advanced_reroller_enabled: true
+
 # Ability costs (tune these to balance gameplay)
 costs:
   air:
